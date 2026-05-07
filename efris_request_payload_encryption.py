@@ -16,6 +16,7 @@ import json
 import requests
 from log_handler import LogHandler
 
+from OpenSSL import crypto
 
 
 import datetime
@@ -126,6 +127,26 @@ class EfrisHandler():
         
         return aes_key, private_key_pem
          
+    def generate_aes_key_alternative_method(self,password_description):
+        
+        # OpenSSL Method
+        
+        with open(self.p12_private_key_path,'rb') as f:
+              p12_data = f.read()
+              
+              p12_key = crypto.load_pkcs12(p12_data,self.key_password)
+              certificate = p12_key.get_certificate()
+              private_key = p12_key.get_privatekey()
+             
+              private_key_pem = crypto.dump_privatekey(crypto.FILETYPE_PEM, private_key)
+              loaded_private_key = serialization.load_pem_private_key(private_key_pem,password=None, backend=default_backend())
+           
+              aes_key= loaded_private_key.decrypt(base64.b64decode(password_description.encode('UTF-8')),pad.PKCS1v15())
+            
+            
+              self.logger.info(f'AES KEY! :{aes_key} ')
+        
+        return aes_key, private_key_pem
          
     def encrypt_payload(self,payload, encryption_key):
         
